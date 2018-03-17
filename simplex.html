@@ -38,7 +38,7 @@
                             number: 4,
                             variables: [
                                 {
-                                    value: -4,
+                                    value: 4,
                                     isBasis: false
                                 }, {
                                     value: 3,
@@ -85,17 +85,89 @@
                         this.isMinimum = isMinimum;
                     }
 
+                    function Mark(number, value) {
+                        this.number = number;
+                        this.value = value;                
+                    }
+
                     function SimplexTable(restrictedEquations) {
                         this.restrictedEquations = restrictedEquations;
-                        this.estimates = [];
+                        this.marks = [];
+                        this.maxMark = null;
+                        this.minRelation = null;
                         this.goalFunctionValue = null;
                     }
 
-                    function FirstSimplexTable(restrictedEquations, goalFunctionEquation) {
+                    SimplexTable.prototype.evaluateMaxMark = function() {
+                        var currentMark, maxMark, j;
+                        j = 0;
+                        maxMark = { number: null, value: -1 };
+                        
+                        while (currentMark = this.marks[j++]) {
+                             if (currentMark.value > maxMark.value) {
+                                 maxMark = currentMark;                
+                             }           
+                        }
+                                  
+                        this.maxMark = maxMark;                
+                    }
+
+                    SimplexTable.prototype.evaluateMinRelation = function() {
+                        var currentEquation, minRelation, minRelationVal, relationVal, j;
+                        j = 0;
+                        minRelationVal = Number.MAX_SAFE_INTEGER; 
+
+                        while (currentEquation = this.restrictedEquations[j++]) {
+                              relationVal = currentEquation.freeMember / currentEquation.variables[this.maxMark.number - 1].coeficientValue;
+                                          
+                              if (relationVal >= 0 && relationVal < minRelationVal) {
+                                   minRelation = currentEquation;
+                                   minRelationVal = relationVal;              
+                              }          
+                        }
+
+                        this.minRelation = minRelation;
+                    }
+
+                    function FirstSimplexTable(restrictedEquations, goalFunctionCoef) {
                         SimplexTable.call(this, restrictedEquations);
-                        this.goalFunctionEquation = goalFunctionEquation;
+                        this.goalFunctionCoef = goalFunctionCoef;
                     }
                     FirstSimplexTable.prototype = Object.create(SimplexTable.prototype);
+
+                    FirstSimplexTable.prototype.evaluateMarks = function() {
+                         var currentEquation, j, i, mark;
+
+                         for (i = 0; i < this.goalFunctionCoef.length; i++) {
+                             mark = 0; 
+                                            
+                             for (j = 0; currentEquation = this.restrictedEquations[j++];) {
+                                 mark += (currentEquation.variables[i].coeficientValue * this.goalFunctionCoef[currentEquation.numberBasis - 1].coeficientValue);
+                             }
+
+                             mark -= this.goalFunctionCoef[i].coeficientValue;
+
+                             this.marks.push(new Mark(i + 1, mark));       
+                         }
+                    }
+
+                    FirstSimplexTable.prototype.evaluateFunctionGoalValue = function() {
+                          var i, currentElement, value = 0;
+
+                          i = 0;
+                          while (currentElement = this.restrictedEquations[i++]) {
+                                value += this.goalFunctionCoef[currentElement.numberBasis - 1].coeficientValue * currentElement.freeMember;               
+                          }
+
+                          this.goalFunctionValue = value;            
+                    }
+
+                    FirstSimplexTable.prototype.evaluate = function() {
+                        this.evaluateMarks();
+                        this.evaluateFunctionGoalValue();
+                        this.evaluateMaxMark();
+                        this.evaluateMinRelation();               
+                    }
 
                     function Variable(number, coeficientValue) {
                         this.number = number;
@@ -121,8 +193,9 @@
 
 
                     (function start() {
-                        var goalFunction, firstSimplexTable;
-
+                        var goalFunction, simplexTables, currentSimplexTable;
+                        simplexTables = [];
+                                        
                         function constructGoalFunction() {
                             var variables, freeMember;
                             var goalFunction, currentElement, currentVariable;
@@ -161,7 +234,7 @@
 
                                 for (k = 0; currentVariable = currentElement.variables[k++];) {
                                     variables.push(
-                                        new RestritedVariable(j, currentVariable.value, currentVariable.isBasis)
+                                        new RestritedVariable(k, currentVariable.value, currentVariable.isBasis)
                                     );
                                 }
 
@@ -173,10 +246,23 @@
                             return new FirstSimplexTable(restrictedEquations, goalFunction.equation.variables);
                         }
 
+                        function constructSimplexTable(previousSimplexTable) {
+                            var newSimplexTable;          
+                                        
+                            debugger;            
+                        }
+
                         goalFunction = constructGoalFunction();
-                        firstSimplexTable = constructFirstSimplexTable(goalFunction);
+
+                        currentSimplexTable = constructFirstSimplexTable(goalFunction);
+                        simplexTables.push(currentSimplexTable);
+                        currentSimplexTable.evaluate();
+
+                        currentSimplexTable = constructSimplexTable(currentSimplexTable);
+
                         console.log(goalFunction);
-                        console.log(firstSimplexTable);
+                        console.log(simplexTables);
+                        
                     })();
                 }
             })();
