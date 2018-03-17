@@ -90,8 +90,24 @@
                         this.value = value;                
                     }
 
-                    function SimplexTable(restrictedEquations) {
+                    function SolvedCoord(col, row) {
+                        this.row = row;
+                        this.col = col;                
+                    }
+
+                    function Solution(indicator) {
+                        this.indicator = indicator;                
+                    }
+
+                    Solution.prototype.answer = function() {
+                        switch (this.indicator) {
+                           
+                        }          
+                    }
+
+                    function SimplexTable(restrictedEquations, solvedCoord) {
                         this.restrictedEquations = restrictedEquations;
+                        this.solvedCoord = solvedCoord;
                         this.marks = [];
                         this.maxMark = null;
                         this.minRelation = null;
@@ -127,6 +143,39 @@
                         }
 
                         this.minRelation = minRelation;
+                    }
+
+                    SimplexTable.prototype.evaluateBasis = function() {
+                          var i, j, currentEquation, currentVariable, currentMark, basisCol;
+
+                          for (i = 0; i < this.restrictedEquations.length; i++) {
+                              if (i === this.solvedCoord.row - 1) {
+                                  continue;
+                              }
+                              currentEquation = this.restrictedEquations[i];
+
+                              basisCol = currentEquation.variables[this.solvedCoord.col - 1].coeficientValue;
+                              for (j = 0; j < currentEquation.variables.length; j++) {
+                                  currentVariable = currentEquation.variables[j];
+                                  currentVariable.coeficientValue += 
+                                        (this.restrictedEquations[this.solvedCoord.row - 1].variables[j].coeficientValue * (-basisCol));
+                                                                                   
+                              }
+
+                              currentEquation.freeMember += 
+                                        (this.restrictedEquations[this.solvedCoord.row - 1].freeMember * (-basisCol));
+                          }
+                           
+                          basisCol = this.marks[this.solvedCoord.col - 1].value;              
+                          for (i = 0; i < this.marks.length; i++) {
+                              currentMark = this.marks[i];
+
+                              currentMark.value +=
+                                        (this.restrictedEquations[this.solvedCoord.row - 1].variables[i].coeficientValue * (-basisCol));
+                          }
+
+                          this.goalFunctionValue += 
+                                        (this.restrictedEquations[this.solvedCoord.row - 1].freeMember * (-basisCol));
                     }
 
                     function FirstSimplexTable(restrictedEquations, goalFunctionCoef) {
@@ -227,7 +276,9 @@
                             restrictions = input.restrictions;
                             restrictedEquations = [];
 
-                            if (restrictions)
+                            if (!restrictions) {
+                                return;        
+                            }
 
                             for (j = 0; currentElement = restrictions[j++];) {
                                 variables = [];
@@ -247,9 +298,51 @@
                         }
 
                         function constructSimplexTable(previousSimplexTable) {
-                            var newSimplexTable;          
-                                        
-                            debugger;            
+                            var newSimplexTable, equations = [], restrictedEquation, variables,
+                                restrictedVariable, j, k, varIterator, variable, solvedValue, solvedCoord;
+                                          
+                            var newRestrictedVariable, newRestrictedEquation, newMarks = [];
+
+                            for (j = 0; j < previousSimplexTable.restrictedEquations.length; j++) {
+                                variables = [];                
+                                restrictedEquation = previousSimplexTable.restrictedEquations[j];
+
+                                for (k = 0; k < restrictedEquation.variables.length; k++) {
+                                    restrictedVariable = restrictedEquation.variables[k];
+                                    newRestrictedVariable = Object.assign({}, restrictedVariable);
+                                    variables.push(newRestrictedVariable);                
+                                }
+
+                                if (restrictedEquation.numberBasis === previousSimplexTable.minRelation.numberBasis) {
+                                    varIterator = 0;
+                                    solvedValue = previousSimplexTable.minRelation
+                                        .variables[previousSimplexTable.maxMark.number - 1].coeficientValue;
+
+                                    while (variable = variables[varIterator++]) {
+                                        variable.coeficientValue /= solvedValue;
+                                    }
+                                    
+                                    solvedCoord = new SolvedCoord(previousSimplexTable.maxMark.number, j + 1);
+
+                                    newRestrictedEquation = 
+                                        new RestritedEquation(previousSimplexTable.maxMark.number, variables, restrictedEquation.freeMember / solvedValue);
+                                } else {
+                                    newRestrictedEquation = 
+                                        new RestritedEquation(restrictedEquation.numberBasis, variables, restrictedEquation.freeMember); 
+                                }
+
+                                equations.push(newRestrictedEquation);
+                            }
+
+                            for (j = 0; j < previousSimplexTable.marks.length; j++) {
+                                newMarks.push(Object.assign({}, previousSimplexTable.marks[j]));
+                            }
+
+                            newSimplexTable = new SimplexTable(equations, solvedCoord);
+                            newSimplexTable.marks = newMarks;
+                            newSimplexTable.goalFunctionValue = previousSimplexTable.goalFunctionValue;
+
+                            return newSimplexTable;            
                         }
 
                         goalFunction = constructGoalFunction();
@@ -259,10 +352,11 @@
                         currentSimplexTable.evaluate();
 
                         currentSimplexTable = constructSimplexTable(currentSimplexTable);
+                        currentSimplexTable.evaluateBasis();
 
                         console.log(goalFunction);
                         console.log(simplexTables);
-                        
+                        console.log(currentSimplexTable);
                     })();
                 }
             })();
