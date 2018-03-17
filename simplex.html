@@ -1,0 +1,186 @@
+<html>
+    <head>
+        <title>Simplex method</title>
+    </head>
+    <body>
+        <script>
+        	(function() {
+                window.onload = function() {
+                    var input = { 
+                        goalFunction: { 
+                            variables : [2, 3, -1, 5, 0],
+                            freeMember : 0,
+                            isMinimum : true
+                        }, 
+                        restrictions: [{
+                            number: 3,
+                            variables: [
+                                {
+                                    value: -2,
+                                    isBasis: false
+                                }, {
+                                    value: -1,
+                                    isBasis: false
+                                }, {
+                                    value: 1,
+                                    isBasis: true
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }
+                            ],
+                            freeMember: 2
+                        },
+                         {
+                            number: 4,
+                            variables: [
+                                {
+                                    value: -4,
+                                    isBasis: false
+                                }, {
+                                    value: 3,
+                                    isBasis: false
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }, {
+                                    value: 1,
+                                    isBasis: true
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }
+                            ],
+                            freeMember: 4
+                        },
+                         {
+                            number: 5,
+                            variables: [
+                                {
+                                    value: -3,
+                                    isBasis: false
+                                }, {
+                                    value: -1,
+                                    isBasis: false
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }, {
+                                    value: 0,
+                                    isBasis: false
+                                }, {
+                                    value: 1,
+                                    isBasis: true
+                                }
+                            ],
+                            freeMember: 4
+                        }]
+                    };
+
+                    function GoalFunction(equation, isMinimum) {
+                        this.equation = equation;
+                        this.isMinimum = isMinimum;
+                    }
+
+                    function SimplexTable(restrictedEquations) {
+                        this.restrictedEquations = restrictedEquations;
+                        this.estimates = [];
+                        this.goalFunctionValue = null;
+                    }
+
+                    function FirstSimplexTable(restrictedEquations, goalFunctionEquation) {
+                        SimplexTable.call(this, restrictedEquations);
+                        this.goalFunctionEquation = goalFunctionEquation;
+                    }
+                    FirstSimplexTable.prototype = Object.create(SimplexTable.prototype);
+
+                    function Variable(number, coeficientValue) {
+                        this.number = number;
+                        this.coeficientValue = coeficientValue || 0;
+                    }
+
+                    function RestritedVariable(number, coeficientValue, isBasis) {
+                        Variable.call(this, number, coeficientValue);
+                        this.isBasis = isBasis || false;
+                    }
+                    RestritedVariable.prototype = Object.create(Variable.prototype);
+
+                    function Equation(variables, freeMember) {
+                        this.variables = variables;
+                        this.freeMember = freeMember;
+                    }
+
+                    function RestritedEquation(numberBasis, variables, freeMember) {
+                        Equation.call(this, variables, freeMember);
+                        this.numberBasis = numberBasis;
+                    }
+                    RestritedEquation.prototype = Object.create(Equation.prototype);
+
+
+                    (function start() {
+                        var goalFunction, firstSimplexTable;
+
+                        function constructGoalFunction() {
+                            var variables, freeMember;
+                            var goalFunction, currentElement, currentVariable;
+                            variables = [];
+                            
+                            currentElement = input.goalFunction;
+ 
+                            if (!currentElement) {
+                                return goalFunction;
+                            }
+
+                            for (j = 0; (currentVariable = currentElement.variables[j++]) !== undefined;) {
+                                variables.push(new Variable(j,
+                                     currentElement.isMinimum ? currentVariable : - currentVariable));
+                            }
+
+                            currentElement.freeMember = currentElement.isMinimum ? currentElement.freeMember : -currentElement.freeMember;
+
+                            return goalFunction = new GoalFunction(
+                                 new Equation(variables, currentElement.freeMember),
+                                 true
+                            ); 
+                        }
+
+                        function constructFirstSimplexTable(goalFunction) {
+                            var restrictions, restrictedEquations, variables,
+                                currentElement, currentVariable, j, k;
+
+                            restrictions = input.restrictions;
+                            restrictedEquations = [];
+
+                            if (restrictions)
+
+                            for (j = 0; currentElement = restrictions[j++];) {
+                                variables = [];
+
+                                for (k = 0; currentVariable = currentElement.variables[k++];) {
+                                    variables.push(
+                                        new RestritedVariable(j, currentVariable.value, currentVariable.isBasis)
+                                    );
+                                }
+
+                                restrictedEquations.push(
+                                    new RestritedEquation(currentElement.number, variables, currentElement.freeMember)
+                                );
+                            }
+                            
+                            return new FirstSimplexTable(restrictedEquations, goalFunction.equation.variables);
+                        }
+
+                        goalFunction = constructGoalFunction();
+                        firstSimplexTable = constructFirstSimplexTable(goalFunction);
+                        console.log(goalFunction);
+                        console.log(firstSimplexTable);
+                    })();
+                }
+            })();
+        </script>
+    </body>
+</html>
+    
