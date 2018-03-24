@@ -1,84 +1,398 @@
 <html>
     <head>
         <title>Simplex method</title>
+        <style>
+                    #app, html {
+                        background-color: #BCBAAD;
+                        padding: 10px;
+                        font-size: 20px;
+                    }
+
+                    .input-width {
+                        width: 20px;
+                    }
+
+                    #goal-function {
+                        margin-bottom: 50px;
+                    }
+
+                    #solve {
+                        width: 75px;
+                        height: 25px;
+                        font-size: 16px;
+                        border-radius: 8px;
+                        margin-top: 25px;                  
+                    }
+        </style>
     </head>
     <body>
+        <div id="app"></div>
         <script>
         	(function() {
                 window.onload = function() {
-                    var input = { 
-                        goalFunction: { 
-                            variables : [2, 3, -1, 5, 0],
-                            freeMember : 0,
-                            isMinimum : true
-                        }, 
-                        restrictions: [{
-                            number: 3,
-                            variables: [
-                                {
-                                    value: -2,
-                                    isBasis: false
-                                }, {
-                                    value: -1,
-                                    isBasis: false
-                                }, {
-                                    value: 1,
-                                    isBasis: true
-                                }, {
-                                    value: 0,
-                                    isBasis: false
-                                }, {
-                                    value: 0,
-                                    isBasis: false
+                    var APP_ID = "app";
+
+                    function Main() {
+                        this.simplexTables = [];
+                        this.domGenerator = null;
+                        this.inputOutputGenerator = null;                
+                    }
+
+                    Main.prototype.constructGoalFunction = function() {
+                        var variables, freeMember;
+                        var goalFunction, currentElement, currentVariable;
+                        variables = [];
+                            
+                        currentElement = this.inputOutputGenerator.input.goalFunction;
+ 
+                        if (!currentElement) {
+                            return goalFunction;
+                        }
+
+                        for (j = 0; (currentVariable = currentElement.variables[j++]) !== undefined;) {
+                            variables.push(new Variable(j,
+                                 currentElement.isMinimum ? currentVariable : - currentVariable));
+                        }
+
+                        currentElement.freeMember = currentElement.isMinimum ? currentElement.freeMember : -currentElement.freeMember;
+
+                        return goalFunction = new GoalFunction(
+                             new Equation(variables, currentElement.freeMember),  
+                             true
+                        ); 
+                     }
+
+                     Main.prototype.constructFirstSimplexTable = function(goalFunction) {
+                        var restrictions, restrictedEquations, variables,
+                            currentElement, currentVariable, j, k;
+
+                        restrictions = this.inputOutputGenerator.input.restrictions;
+                        restrictedEquations = [];
+
+                        if (!restrictions) {
+                            return;       
+                        }
+
+                        for (j = 0; currentElement = restrictions[j++];) {
+                            variables = [];
+
+                            for (k = 0; currentVariable = currentElement.variables[k++];) {
+                                variables.push(
+                                    new RestritedVariable(k, currentVariable.value, currentVariable.isBasis)
+                                );
+                            }
+
+                            restrictedEquations.push(
+                               new RestritedEquation(currentElement.number, variables, currentElement.freeMember)
+                            );
+                         }
+                            
+                         return new FirstSimplexTable(restrictedEquations, goalFunction.equation.variables);
+                      }
+
+                      Main.prototype.constructSimplexTable = function(previousSimplexTable) {
+                         var newSimplexTable, equations = [], restrictedEquation, variables,
+                             restrictedVariable, j, k, varIterator, variable, solvedValue, solvedCoord,
+                             newRestrictedVariable, newRestrictedEquation, newMarks = [];
+
+                         for (j = 0; j < previousSimplexTable.restrictedEquations.length; j++) {
+                             variables = [];                
+                             restrictedEquation = previousSimplexTable.restrictedEquations[j];
+
+                             for (k = 0; k < restrictedEquation.variables.length; k++) {
+                                 restrictedVariable = restrictedEquation.variables[k];
+                                 newRestrictedVariable = Object.assign({}, restrictedVariable);
+                                 variables.push(newRestrictedVariable);                
+                             }
+
+                             if (restrictedEquation.numberBasis === previousSimplexTable.minRelation.numberBasis) {
+                                 varIterator = 0;
+                                 solvedValue = previousSimplexTable.minRelation
+                                     .variables[previousSimplexTable.maxMark.number - 1].coeficientValue;
+
+                                 while (variable = variables[varIterator++]) {
+                                     variable.coeficientValue /= solvedValue;
+                                 }
+                                    
+                                 solvedCoord = new SolvedCoord(previousSimplexTable.maxMark.number, j + 1);
+
+                                 newRestrictedEquation = 
+                                     new RestritedEquation(previousSimplexTable.maxMark.number, variables, restrictedEquation.freeMember / solvedValue);
+                             } else {
+                                 newRestrictedEquation = 
+                                     new RestritedEquation(restrictedEquation.numberBasis, variables, restrictedEquation.freeMember); 
+                             }
+
+                             equations.push(newRestrictedEquation);
+                         }
+
+                         for (j = 0; j < previousSimplexTable.marks.length; j++) {
+                             newMarks.push(Object.assign({}, previousSimplexTable.marks[j]));
+                         }
+
+                         newSimplexTable = new SimplexTable(equations, solvedCoord);
+                         newSimplexTable.marks = newMarks;
+                         newSimplexTable.goalFunctionValue = previousSimplexTable.goalFunctionValue;
+
+                         return newSimplexTable;            
+                     }
+
+                     Main.prototype.run = function() {
+                        var goalFunction, currentSimplexTable, first = true;
+
+                        goalFunction = this.constructGoalFunction();
+                                            
+                        do {
+                            currentSimplexTable = first ? this.constructFirstSimplexTable(goalFunction) 
+                                     : this.constructSimplexTable(currentSimplexTable);
+
+                            first = false;
+                                        
+                            currentSimplexTable.evaluate();
+                            this.simplexTables.push(currentSimplexTable);
+                               
+                        } while (!currentSimplexTable.isEnd());  
+                           
+                        console.log(this.inputOutputGenerator);
+                        console.log(this.simplexTables);             
+                     }
+
+                     Main.prototype.generateConfiguration = function() {
+                         this.domGenerator = new DOMGenerator(new Configuration());
+                         this.inputOutputGenerator = new InputOutputGenerator(this.domGenerator);
+
+                         this.domGenerator.doInputBlock(this.inputOutputGenerator.generateInput.bind(this.inputOutputGenerator), this.run.bind(this));
+                     }                
+
+                    function Configuration() {
+                        this.amountVars = +prompt('Enter amount of variables');
+                        this.amountRestrictions = +prompt('Enter amount of restrictions');               
+                        this.isMin = confirm("Is the goal function minimized?")
+                    }
+
+                    function DOMGenerator(configuration) {
+                        this.configuration = configuration;
+                        this.goalFunctionInputs = [];
+                        this.restrictionInputs = [];
+                        this.appDiv = document.getElementById(APP_ID);
+                    }
+
+                    function InputOutputGenerator(domGenerator) {
+                        this.domGenerator = domGenerator;
+                        this.input = {};
+                    }
+
+                    InputOutputGenerator.prototype.generateInput = function() {
+                        this.generateInputGoalFunction();
+                        this.generateInputRestrictions();
+                        this.resolveBasis();
+                    }
+
+                    InputOutputGenerator.prototype.generateInputGoalFunction = function() {
+                        var goalFunction = {}, currentInput, iterator;
+                        goalFunction.variables = [];
+
+                        for (iterator = 0; currentInput = this.domGenerator.goalFunctionInputs[iterator++];) {
+                            goalFunction.variables.push(+currentInput.value);                
+                        }
+                        
+                        goalFunction.freeMember = goalFunction.variables.pop();
+                        goalFunction.isMinimum = this.domGenerator.configuration.isMin;
+                        this.input.goalFunction = goalFunction;            
+                    }
+
+                    InputOutputGenerator.prototype.generateInputRestrictions = function() {
+                        var restrictions = [], restriction, currentInput, currentInputInner,
+                            iterator, innerIterator, currentVariable;
+
+                        for (iterator = 0; currentInput = this.domGenerator.restrictionInputs[iterator++];) {
+                            restriction = {};
+                            restriction.variables = [];
+                            
+                            for (innerIterator = 0; currentInputInner = currentInput[innerIterator++];) {
+                                currentVariable = {};
+                                currentVariable.value = +currentInputInner.value;                
+                                restriction.variables.push(currentVariable);                
+                            }
+
+                            restriction.freeMember = restriction.variables.pop().value; 
+
+                            restrictions.push(restriction);               
+                        }
+
+                        this.input.restrictions = restrictions;               
+                    }
+
+                    InputOutputGenerator.prototype.resolveBasis = function() {
+                        var currentRestriction, currentVariable,
+                            amountRestrictions = this.domGenerator.configuration.amountRestrictions,
+                            restrictions = this.input.restrictions,
+                            iterator, innerIterator, addIterator, isBasis;
+
+                        for (iterator = 0; currentRestriction = restrictions[iterator++];) {
+                            for (innerIterator = 0; currentVariable = currentRestriction.variables[innerIterator++];) {
+                                if (currentVariable.value !== 1) {
+                                    currentVariable.isBasis = false;
+                                    continue;                
                                 }
-                            ],
-                            freeMember: 2
-                        },
-                         {
-                            number: 4,
-                            variables: [
-                                {
-                                    value: 4,
-                                    isBasis: false
-                                }, {
-                                    value: 3,
-                                    isBasis: false
-                                }, {
-                                    value: 0,
-                                    isBasis: false
-                                }, {
-                                    value: 1,
-                                    isBasis: true
-                                }, {
-                                    value: 0,
-                                    isBasis: false
+
+                                isBasis = true;
+                                for (addIterator = 0; addIterator < amountRestrictions; addIterator++) {
+                                    if (restrictions[addIterator].variables[innerIterator - 1].value !== 0 && addIterator !== (iterator - 1)) {
+                                       isBasis = false;
+                                       break;                 
+                                    }
                                 }
-                            ],
-                            freeMember: 4
-                        },
-                         {
-                            number: 5,
-                            variables: [
-                                {
-                                    value: -3,
-                                    isBasis: false
-                                }, {
-                                    value: -1,
-                                    isBasis: false
-                                }, {
-                                    value: 0,
-                                    isBasis: false
-                                }, {
-                                    value: 0,
-                                    isBasis: false
-                                }, {
-                                    value: 1,
-                                    isBasis: true
+
+                                currentVariable.isBasis = isBasis;
+                                if (isBasis) {
+                                   currentRestriction.number = innerIterator;
                                 }
-                            ],
-                            freeMember: 4
-                        }]
-                    };
+                            }               
+                        }
+                    }
+ 
+                    DOMGenerator.prototype.doInputBlock = function(generateInput, run) {
+                        var inputBlock, goalFunctionLabel, goalFunctionBlock, restrictionsBlock, btn;
+                        inputBlock = document.createElement('div');
+                        inputBlock.setAttribute("id", "input-block");
+
+                        goalFunctionLabel = document.createElement('h5');
+                        goalFunctionLabel.innerHTML = "Goal function";
+
+                        goalFunctionBlock = document.createElement('div');
+                        goalFunctionBlock.setAttribute("id", "goal-function");
+
+                        this.doGoalFunction(goalFunctionBlock);
+
+                        restrictionsBlock = document.createElement('div');
+                        restrictionsBlock.setAttribute("id", "restrictions");
+
+                        this.doRestrictions(restrictionsBlock);
+
+                        btn = document.createElement('button');
+                        btn.setAttribute("id", "solve");
+                        btn.innerHTML = "Solve";
+
+                        btn.addEventListener("click", function() { 
+                              generateInput();
+                              run();
+                        });
+
+                        inputBlock.appendChild(goalFunctionLabel);
+                        inputBlock.appendChild(goalFunctionBlock);
+                        inputBlock.appendChild(restrictionsBlock);
+                        inputBlock.appendChild(btn);
+                        this.appDiv.appendChild(inputBlock);
+                    }
+
+                    DOMGenerator.prototype.doGoalFunction = function(goalFunction) {
+                        var fxspan, xspan, sub, plusspan,
+                        goalFunctionInputWrapper, goalFunctionInput, 
+                        freeMemberWrapper, freeMember, iterator = 0, attitudeSpan;
+
+                        fxspan = document.createElement('span');
+                        fxspan.innerHTML = "f(x) = ";
+                        goalFunction.appendChild(fxspan);
+
+
+                        for (;iterator++ < this.configuration.amountVars;) {
+                            goalFunctionInputWrapper = document.createElement('span');
+                            goalFunctionInput = document.createElement('input');
+                            goalFunctionInput.setAttribute("id", "goal-function-input-" + iterator);
+                            goalFunctionInput.setAttribute("class", "input-width");
+                            this.goalFunctionInputs.push(goalFunctionInput);
+
+                            xspan = document.createElement('span');
+                            xspan.innerHTML = "x";
+
+                            sub = document.createElement("sub");
+                            sub.innerHTML = iterator;
+
+                            plusspan = document.createElement('span');
+                            plusspan.innerHTML = " + ";
+
+
+                            goalFunctionInputWrapper.appendChild(goalFunctionInput);
+                            goalFunctionInputWrapper.appendChild(xspan);
+                            goalFunctionInputWrapper.appendChild(sub);
+
+                            goalFunction.appendChild(goalFunctionInputWrapper);
+                            goalFunction.appendChild(plusspan);
+                         }
+
+                         freeMemberWrapper = document.createElement('span');
+
+                         freeMember = document.createElement('input');
+                         freeMember.setAttribute("id", "goal-function-freemember");
+                         freeMember.setAttribute("class", "input-width");
+                         this.goalFunctionInputs.push(freeMember);
+
+                         freeMemberWrapper.appendChild(freeMember);
+
+                         attitudeSpan = document.createElement('span');
+                         attitudeSpan.innerHTML = " -> " + (this.configuration.isMin ? "min" : "max");
+
+                         goalFunction.appendChild(freeMemberWrapper);
+                         goalFunction.appendChild(attitudeSpan);
+                    }
+
+                    DOMGenerator.prototype.doRestrictions = function(restrictionsBlock) {
+                         var restrictionsLabel, restrictionBlock, iterator, innerIterator,
+                             restrictionInputWrapper, restrictionInput, sub, xspan, plusspan,
+                             equalsspan, restrictionInputPack;
+
+                         restrictionsLabel = document.createElement('h5');
+                         restrictionsLabel.innerHTML = "Restrictions";
+                         restrictionsBlock.appendChild(restrictionsLabel);
+
+                         for (iterator = 0; iterator++ < this.configuration.amountRestrictions; ) {
+                              restrictionBlock = document.createElement('div');
+                              restrictionBlock.setAttribute("id", "restriction-" + iterator);
+                              
+                              restrictionInputPack = [];
+                              for (innerIterator = 0; innerIterator++ < this.configuration.amountVars;) {
+                                  restrictionInputWrapper = document.createElement('span');
+                                  
+                                  restrictionInput = document.createElement('input');
+                                  restrictionInput.setAttribute("id", "restriction-" + iterator + "-input-" + innerIterator);
+                                  restrictionInput.setAttribute("class", "input-width");
+                                  restrictionInputPack.push(restrictionInput);
+
+                                  xspan = document.createElement('span');
+                                  xspan.innerHTML = "x";
+
+                                  sub = document.createElement('sub');
+                                  sub.innerHTML = innerIterator;
+
+                                  restrictionInputWrapper.appendChild(restrictionInput);
+                                  restrictionInputWrapper.appendChild(xspan);
+                                  restrictionInputWrapper.appendChild(sub);
+
+                                  restrictionBlock.appendChild(restrictionInputWrapper);
+                                  
+                                  if (innerIterator < this.configuration.amountVars) {
+                                      plusspan = document.createElement('span');
+                                      plusspan.innerHTML = "+";
+
+                                      restrictionBlock.appendChild(plusspan);
+                                  }
+                              }
+
+                              equalsspan = document.createElement('span');
+                              equalsspan.innerHTML = " = ";
+
+                              restrictionInput = document.createElement('input');
+                              restrictionInput.setAttribute("id", "restriction-" + iterator + "-freemember");
+                              restrictionInput.setAttribute("class", "input-width");
+                              restrictionInputPack.push(restrictionInput);
+                              this.restrictionInputs.push(restrictionInputPack);
+
+                              restrictionBlock.appendChild(equalsspan);
+                              restrictionBlock.appendChild(restrictionInput);
+                              restrictionsBlock.appendChild(restrictionBlock);               
+                         }
+                    }
 
                     function GoalFunction(equation, isMinimum) {
                         this.equation = equation;
@@ -258,128 +572,7 @@
 
 
                     (function start() {
-                        var simplexTables = [];
-
-                        function constructGoalFunction() {
-                            var variables, freeMember;
-                            var goalFunction, currentElement, currentVariable;
-                            variables = [];
-                            
-                            currentElement = input.goalFunction;
- 
-                            if (!currentElement) {
-                                return goalFunction;
-                            }
-
-                            for (j = 0; (currentVariable = currentElement.variables[j++]) !== undefined;) {
-                                variables.push(new Variable(j,
-                                     currentElement.isMinimum ? currentVariable : - currentVariable));
-                            }
-
-                            currentElement.freeMember = currentElement.isMinimum ? currentElement.freeMember : -currentElement.freeMember;
-
-                            return goalFunction = new GoalFunction(
-                                 new Equation(variables, currentElement.freeMember),
-                                 true
-                            ); 
-                        }
-
-                        function constructFirstSimplexTable(goalFunction) {
-                            var restrictions, restrictedEquations, variables,
-                                currentElement, currentVariable, j, k;
-
-                            restrictions = input.restrictions;
-                            restrictedEquations = [];
-
-                            if (!restrictions) {
-                                return;        
-                            }
-
-                            for (j = 0; currentElement = restrictions[j++];) {
-                                variables = [];
-
-                                for (k = 0; currentVariable = currentElement.variables[k++];) {
-                                    variables.push(
-                                        new RestritedVariable(k, currentVariable.value, currentVariable.isBasis)
-                                    );
-                                }
-
-                                restrictedEquations.push(
-                                    new RestritedEquation(currentElement.number, variables, currentElement.freeMember)
-                                );
-                            }
-                            
-                            return new FirstSimplexTable(restrictedEquations, goalFunction.equation.variables);
-                        }
-
-                        function constructSimplexTable(previousSimplexTable) {
-                            var newSimplexTable, equations = [], restrictedEquation, variables,
-                                restrictedVariable, j, k, varIterator, variable, solvedValue, solvedCoord,
-                                newRestrictedVariable, newRestrictedEquation, newMarks = [];
-
-                            for (j = 0; j < previousSimplexTable.restrictedEquations.length; j++) {
-                                variables = [];                
-                                restrictedEquation = previousSimplexTable.restrictedEquations[j];
-
-                                for (k = 0; k < restrictedEquation.variables.length; k++) {
-                                    restrictedVariable = restrictedEquation.variables[k];
-                                    newRestrictedVariable = Object.assign({}, restrictedVariable);
-                                    variables.push(newRestrictedVariable);                
-                                }
-
-                                if (restrictedEquation.numberBasis === previousSimplexTable.minRelation.numberBasis) {
-                                    varIterator = 0;
-                                    solvedValue = previousSimplexTable.minRelation
-                                        .variables[previousSimplexTable.maxMark.number - 1].coeficientValue;
-
-                                    while (variable = variables[varIterator++]) {
-                                        variable.coeficientValue /= solvedValue;
-                                    }
-                                    
-                                    solvedCoord = new SolvedCoord(previousSimplexTable.maxMark.number, j + 1);
-
-                                    newRestrictedEquation = 
-                                        new RestritedEquation(previousSimplexTable.maxMark.number, variables, restrictedEquation.freeMember / solvedValue);
-                                } else {
-                                    newRestrictedEquation = 
-                                        new RestritedEquation(restrictedEquation.numberBasis, variables, restrictedEquation.freeMember); 
-                                }
-
-                                equations.push(newRestrictedEquation);
-                            }
-
-                            for (j = 0; j < previousSimplexTable.marks.length; j++) {
-                                newMarks.push(Object.assign({}, previousSimplexTable.marks[j]));
-                            }
-
-                            newSimplexTable = new SimplexTable(equations, solvedCoord);
-                            newSimplexTable.marks = newMarks;
-                            newSimplexTable.goalFunctionValue = previousSimplexTable.goalFunctionValue;
-
-                            return newSimplexTable;            
-                        }
-
-                        function run() {
-                           var goalFunction, currentSimplexTable, first = true;
-
-                           goalFunction = constructGoalFunction();
-                                            
-                           do {
-                               currentSimplexTable = first ? constructFirstSimplexTable(goalFunction) 
-                                        : constructSimplexTable(currentSimplexTable);
-
-                               first = false;
-                                        
-                               currentSimplexTable.evaluate();
-                               simplexTables.push(currentSimplexTable);
-                               
-                           } while (!currentSimplexTable.isEnd());  
-
-                           console.log(goalFunction);
-                           console.log(simplexTables);             
-                        }
-
-                        run();
+                        new Main().generateConfiguration();
                     })();
                 }
             })();
