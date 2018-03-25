@@ -50,15 +50,14 @@
                         }
 
                         for (j = 0; (currentVariable = currentElement.variables[j++]) !== undefined;) {
-                            variables.push(new Variable(j,
-                                 currentElement.isMinimum ? currentVariable : - currentVariable));
+                            variables.push(new Variable(j, currentVariable));
                         }
 
                         currentElement.freeMember = currentElement.isMinimum ? currentElement.freeMember : -currentElement.freeMember;
 
                         return goalFunction = new GoalFunction(
                              new Equation(variables, currentElement.freeMember),  
-                             true
+                             currentElement.isMinimum
                         ); 
                      }
 
@@ -87,7 +86,7 @@
                             );
                          }
                             
-                         return new FirstSimplexTable(restrictedEquations, goalFunction.equation.variables);
+                         return new FirstSimplexTable(restrictedEquations, goalFunction);
                       }
 
                       Main.prototype.constructSimplexTable = function(previousSimplexTable) {
@@ -193,7 +192,7 @@
                         goalFunction.variables = [];
 
                         for (iterator = 0; currentInput = this.domGenerator.goalFunctionInputs[iterator++];) {
-                            goalFunction.variables.push(+currentInput.value);                
+                            goalFunction.variables.push(this.domGenerator.configuration.isMin ? +currentInput.value : -currentInput.value);                
                         }
                         
                         goalFunction.freeMember = goalFunction.variables.pop();
@@ -508,23 +507,23 @@
                         this.evaluateMinRelation();                  
                     }
 
-                    function FirstSimplexTable(restrictedEquations, goalFunctionCoef) {
+                    function FirstSimplexTable(restrictedEquations, goalFunction) {
                         SimplexTable.call(this, restrictedEquations);
-                        this.goalFunctionCoef = goalFunctionCoef;
+                        this.goalFunction = goalFunction;
                     }
                     FirstSimplexTable.prototype = Object.create(SimplexTable.prototype);
 
                     FirstSimplexTable.prototype.evaluateMarks = function() {
                          var currentEquation, j, i, mark;
 
-                         for (i = 0; i < this.goalFunctionCoef.length; i++) {
+                         for (i = 0; i < this.goalFunction.equation.variables.length; i++) {
                              mark = 0; 
                                             
                              for (j = 0; currentEquation = this.restrictedEquations[j++];) {
-                                 mark += (currentEquation.variables[i].coeficientValue * this.goalFunctionCoef[currentEquation.numberBasis - 1].coeficientValue);
+                                 mark += (currentEquation.variables[i].coeficientValue * this.goalFunction.equation.variables[currentEquation.numberBasis - 1].coeficientValue);
                              }
 
-                             mark -= this.goalFunctionCoef[i].coeficientValue;
+                             mark -= this.goalFunction.equation.variables[i].coeficientValue;
 
                              this.marks.push(new Mark(i + 1, mark));       
                          }
@@ -535,7 +534,7 @@
 
                           i = 0;
                           while (currentElement = this.restrictedEquations[i++]) {
-                                value += this.goalFunctionCoef[currentElement.numberBasis - 1].coeficientValue * currentElement.freeMember;               
+                                value += this.goalFunction.equation.variables[currentElement.numberBasis - 1].coeficientValue * currentElement.freeMember;               
                           }
 
                           this.goalFunctionValue = value;            
