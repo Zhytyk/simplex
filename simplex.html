@@ -23,7 +23,32 @@
                         border-radius: 8px;
                         margin-top: 25px;                  
                     }
+
+                    .simplex {
+                        border-collapse: collapse;
+                    }
+
+                    tr, th, td {
+                        border: 2px solid black;
+                        text-align: center;
+                        width: 100px;
+                        height: 40px;
+                        background-color: #FBDCDE;
+                    }
+
+                    .stub {
+                        visibility: hidden;
+                    }
+
+                    .margin {
+                        margin-top: 20px;
+                    }
+
+                    .yellow {
+                        background-color: yellow;                
+                    }
         </style>
+        <script src="math.min.js"></script>
     </head>
     <body>
         <div id="app"></div>
@@ -31,6 +56,14 @@
         	(function() {
                 window.onload = function() {
                     var APP_ID = "app";
+
+                    function getRatio(value) {
+                         if (math.isInteger(value)) {
+                            return value;                 
+                         }
+
+                         return math.format(math.fraction(value), {fraction: 'fraction'})               
+                    }
 
                     function Main() {
                         this.simplexTables = [];
@@ -137,7 +170,7 @@
                      }
 
                      Main.prototype.run = function() {
-                        var goalFunction, currentSimplexTable, first = true;
+                        var goalFunction, currentSimplexTable, first = true, iterator = 0;
 
                         goalFunction = this.constructGoalFunction();
                                             
@@ -152,6 +185,15 @@
                                
                         } while (!currentSimplexTable.isEnd());  
                            
+
+                        this.domGenerator.doSimplexTable(this.simplexTables[0], true);
+                        this.domGenerator.doCoordsAndFuncValue(this.simplexTables[0], 0);
+
+                        while (++iterator < this.simplexTables.length) {
+                              this.domGenerator.doSimplexTable(this.simplexTables[iterator]);
+                              this.domGenerator.doCoordsAndFuncValue(this.simplexTables[iterator], iterator);
+                        }
+                          
                         console.log(this.inputOutputGenerator);
                         console.log(this.simplexTables);             
                      }
@@ -391,6 +433,139 @@
                               restrictionBlock.appendChild(restrictionInput);
                               restrictionsBlock.appendChild(restrictionBlock);               
                          }
+                    }
+
+                    DOMGenerator.prototype.doSimplexTable = function(simplexTable, isFirst) {
+                         var block, table, th, tr, td, iterator = 0, innerIterator, currentElement;
+                         
+                         block = document.createElement('div');
+                         block.setAttribute('class', 'margin');
+                         
+                         table = document.createElement('table');
+                         table.setAttribute('class', 'simplex');
+
+                         tr = document.createElement('tr');
+
+                         th = document.createElement('th');
+                         th.innerHTML = "Змінні<br/>Базис";
+                         tr.appendChild(th);
+
+                         while (iterator++ < simplexTable.marks.length) {
+                               th = document.createElement('th');
+                               th.innerHTML = "x<sub>" + iterator + "</sub>"; 
+                               tr.appendChild(th);             
+                         }
+
+                         th = document.createElement('th');
+                         th.innerHTML = "Вільні члени";
+                         tr.appendChild(th);
+
+                         table.appendChild(tr);
+                         
+                         for (iterator = 0; currentElement = simplexTable.restrictedEquations[iterator++];) {
+                             tr = document.createElement('tr');
+                             
+                             th = document.createElement('th');
+                             th.innerHTML = "x<sub>" + currentElement.numberBasis + "<sub>";
+                             tr.appendChild(th);
+
+                             innerIterator = 0;
+                             while (innerIterator++ < currentElement.variables.length) {
+                                   td = document.createElement('td');
+                                   
+                                   if (simplexTable.minRelation && simplexTable.maxMark && 
+                                      currentElement.numberBasis === simplexTable.minRelation.numberBasis &&
+                                      innerIterator === simplexTable.maxMark.number) {
+                                      td.setAttribute('class', 'yellow');                 
+                                   }
+
+                                   td.innerHTML = getRatio(currentElement.variables[innerIterator - 1].coeficientValue); 
+                                   tr.appendChild(td);             
+                             } 
+
+                             td = document.createElement('td');
+                             td.innerHTML = getRatio(currentElement.freeMember);
+                             tr.appendChild(td);
+                             
+                             if (isFirst) {           
+                                td = document.createElement('td');
+                                td.innerHTML = getRatio(simplexTable.goalFunction.equation.variables[currentElement.numberBasis - 1].coeficientValue);
+                                tr.appendChild(td);
+                             }
+
+                             table.appendChild(tr);               
+                         }
+
+                         tr = document.createElement('tr');
+                         th = document.createElement('th');
+                         th.innerHTML = "F";
+                         tr.appendChild(th);
+
+                         iterator = 0;
+                         while (iterator++ < simplexTable.marks.length) {
+                               td = document.createElement('td');
+                               td.innerHTML = getRatio(simplexTable.marks[iterator - 1].value);
+                               tr.appendChild(td);              
+                         }
+
+                         td = document.createElement('td');                                                                             
+                         td.innerHTML = getRatio(simplexTable.goalFunctionValue);
+                         tr.appendChild(td);
+
+                         table.appendChild(tr);
+
+                         tr = document.createElement('tr');
+
+                         td = document.createElement('td');
+                         td.setAttribute('class', 'stub');
+                         tr.appendChild(td);
+                         
+                         if (isFirst) {
+                            iterator = 0;
+                            while (iterator++ < simplexTable.marks.length) {
+                                  td = document.createElement('td');
+                                  td.innerHTML = simplexTable.goalFunction.equation.variables[iterator - 1].coeficientValue;
+                                  tr.appendChild(td);              
+                            }
+
+                            table.appendChild(tr);
+                         }
+
+                         block.appendChild(table);
+                         this.appDiv.appendChild(block);
+                    }
+
+                    DOMGenerator.prototype.doCoordsAndFuncValue = function(simplexTable, index) {
+                         var block, coord, coordVal, coordArr = [], funcVal, currentElement, iterator;
+
+                         block = document.createElement('div');
+                         block.setAttribute('class', 'margin');
+                         
+                         coord = document.createElement('span');
+                         coordVal = "x<sup>" + index + "</sup>(";
+
+                         for (iterator = 1; iterator <= simplexTable.marks.length; iterator++) {
+                             currentElement = simplexTable.restrictedEquations.find(function(e) {
+                                 return e.numberBasis === iterator;                
+                             });
+
+                             if (!currentElement) {
+                                coordArr.push(0);
+                                continue;                
+                             }
+
+                             coordArr.push(getRatio(currentElement.freeMember));                
+                         }
+
+                         coordVal += coordArr.join('; ') + ")";
+                         coord.innerHTML = coordVal;
+
+                         funcVal = document.createElement('span');
+                         funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + getRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
+
+                         block.appendChild(coord);
+                         block.appendChild(funcVal);
+                         this.appDiv.appendChild(block);
                     }
 
                     function GoalFunction(equation, isMinimum) {
