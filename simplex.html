@@ -47,11 +47,21 @@
                     .yellow {
                         background-color: yellow;                
                     }
+
+                    .green-answer {
+                        font-weight: bold;
+                        color: green;                
+                    }
+
+                    .red-answer {
+                        font-weight: bold;
+                        color: red;                            
+                    }
         </style>
-        <script src="math.min.js"></script>
     </head>
     <body>
         <div id="app"></div>
+        <script src="math.min.js"></script>
         <script>
         	(function() {
                 window.onload = function() {
@@ -193,6 +203,8 @@
                               this.domGenerator.doSimplexTable(this.simplexTables[iterator]);
                               this.domGenerator.doCoordsAndFuncValue(this.simplexTables[iterator], iterator);
                         }
+
+                        this.domGenerator.doResultAnswer(this.simplexTables);
                           
                         console.log(this.inputOutputGenerator);
                         console.log(this.simplexTables);             
@@ -206,9 +218,9 @@
                      }                
 
                     function Configuration() {
-                        this.amountVars = +prompt('Enter amount of variables');
-                        this.amountRestrictions = +prompt('Enter amount of restrictions');               
-                        this.isMin = confirm("Is the goal function minimized?")
+                        this.amountVars = +prompt('Яка кількість змінних?');
+                        this.amountRestrictions = +prompt('Яка кількість обмежень?');               
+                        this.isMin = confirm("Чи мінімізується функція цілі?")
                     }
 
                     function DOMGenerator(configuration) {
@@ -568,6 +580,31 @@
                          this.appDiv.appendChild(block);
                     }
 
+                    DOMGenerator.prototype.doResultAnswer = function(simplexTables) {
+                         var block, answer, lastTable;
+                         
+                         lastTable = simplexTables[simplexTables.length - 1];
+
+                         block = document.createElement('div');
+                         block.setAttribute('class', 'margin');
+                         answer = document.createElement('span');
+
+                         if (!lastTable.maxMark.number) {
+                            answer.innerHTML = "Так як всі оцінки від'ємні, то оптимальним розв'язком є: ";
+                            answer.setAttribute('class', 'green-answer');
+                         } else if (!lastTable.minRelation) {
+                            answer.innerHTML = "Так як серед відношень немає додатніх, то функція цілі на МПР необмежена " + (this.configuration.isMin ? "знизу." : "зверху.");               
+                            answer.setAttribute('class', 'red-answer');
+                         }
+                    
+                         block.appendChild(answer); 
+                         this.appDiv.appendChild(block);
+                         
+                         if (!lastTable.maxMark.number) {
+                            this.doCoordsAndFuncValue(lastTable, '*');                
+                         }
+                    }
+
                     function GoalFunction(equation, isMinimum) {
                         this.equation = equation;
                         this.isMinimum = isMinimum;
@@ -581,16 +618,6 @@
                     function SolvedCoord(col, row) {
                         this.row = row;
                         this.col = col;                
-                    }
-
-                    function Solution(indicator) {
-                        this.indicator = indicator;                
-                    }
-
-                    Solution.prototype.answer = function() {
-                        switch (this.indicator) {
-                           
-                        }          
                     }
 
                     function SimplexTable(restrictedEquations, solvedCoord) {
