@@ -1,0 +1,55 @@
+#app, html {
+    background-color: #BCBAAD;
+    padding: 10px;
+    font-size: 20px;
+}
+
+.input-width {
+    width: 20px;
+}
+
+#goal-function {
+    margin-bottom: 50px;
+}
+
+#solve {
+    width: 75px;
+    height: 25px;
+    font-size: 16px;
+    border-radius: 8px;
+    margin-top: 25px;
+}
+
+.simplex {
+    border-collapse: collapse;
+}
+
+tr, th, td {
+    border: 2px solid black;
+    text-align: center;
+    width: 100px;
+    height: 40px;
+    background-color: #FBDCDE;
+}
+
+.stub {
+    visibility: hidden;
+}
+
+.margin {
+    margin-top: 20px;
+}
+
+.yellow {
+    background-color: yellow;
+}
+
+.green-answer {
+    font-weight: bold;
+    color: green;
+}
+
+.red-answer {
+    font-weight: bold;
+    color: red;
+}
