@@ -1,6 +1,5 @@
 function Main() {
     this.simplexTables = [];
-    this.normalizer = null;
     this.domGenerator = null;
     this.inputOutputGenerator = null;
 }
@@ -137,7 +136,6 @@ Main.prototype.run = function () {
 Main.prototype.generateConfiguration = function () {
     this.domGenerator = new DOMGenerator(new Configuration());
     this.inputOutputGenerator = new InputOutputGenerator(this.domGenerator);
-    this.normalizer = new Normalizer(this.inputOutputGenerator);
 
-    this.domGenerator.doInputBlock(this.inputOutputGenerator.generateInput.bind(this.inputOutputGenerator), this.run.bind(this), this.normalizer.normalize.bind(this.normalizer));
+    this.domGenerator.doInputBlock(this.inputOutputGenerator.generateInput.bind(this.inputOutputGenerator), this.run.bind(this));
 };

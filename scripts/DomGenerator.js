@@ -4,20 +4,12 @@ function DOMGenerator(configuration) {
     this.configuration = configuration;
     this.goalFunctionInputs = [];
     this.restrictionInputs = [];
+    this.restrictionInputTokens = [];
+    this.varRestrictionInputTokens = [];
     this.appDiv = document.getElementById(APP_ID);
 }
 
-
-DOMGenerator.prototype.getRatio = function getRatio(value) {
-    if (math.isInteger(value)) {
-        return value;
-    }
-
-    return math.format(math.fraction(value), {fraction: 'fraction'})
-};
-
-
-DOMGenerator.prototype.doInputBlock = function (generateInput, run, normilize) {
+DOMGenerator.prototype.doInputBlock = function (generateInput, run) {
     var inputBlock, goalFunctionLabel, goalFunctionBlock, restrictionsBlock, btn;
     inputBlock = document.createElement('div');
     inputBlock.setAttribute("id", "input-block");
@@ -41,7 +33,6 @@ DOMGenerator.prototype.doInputBlock = function (generateInput, run, normilize) {
 
     btn.addEventListener("click", function () {
         generateInput();
-        normilize();
         run();
     });
 
@@ -164,6 +155,7 @@ DOMGenerator.prototype.doRestrictions = function (restrictionsBlock) {
         option.setAttribute("value", "more");
         option.innerHTML = "≥";
         select.appendChild(option);
+        this.restrictionInputTokens.push(select);
 
         equalsspan.appendChild(select);
 
@@ -204,15 +196,17 @@ DOMGenerator.prototype.doRestrictions = function (restrictionsBlock) {
             select = document.createElement("select");
 
             option = document.createElement("option");
-            option.setAttribute("value", "more");
+            option.setAttribute("value", "more zero");
             option.setAttribute("selected", "selected");
             option.innerHTML = "≥ 0 ";
             select.appendChild(option);
 
             option = document.createElement("option");
-            option.setAttribute("value", "more");
+            option.setAttribute("value", "all");
             option.innerHTML = "є R ";
             select.appendChild(option);
+
+            this.varRestrictionInputTokens.push(select);
 
             equalsspan.appendChild(select);
 
@@ -267,17 +261,17 @@ DOMGenerator.prototype.doSimplexTable = function (simplexTable, isFirst) {
                 td.setAttribute('class', 'yellow');
             }
 
-            td.innerHTML = this.getRatio(currentElement.variables[innerIterator - 1].coeficientValue);
+            td.innerHTML = Normalizer.prototype.writeToRatio(currentElement.variables[innerIterator - 1].coeficientValue);
             tr.appendChild(td);
         }
 
         td = document.createElement('td');
-        td.innerHTML = this.getRatio(currentElement.freeMember);
+        td.innerHTML = Normalizer.prototype.writeToRatio(currentElement.freeMember);
         tr.appendChild(td);
 
         if (isFirst) {
             td = document.createElement('td');
-            td.innerHTML = this.getRatio(simplexTable.goalFunction.equation.variables[currentElement.numberBasis - 1].coeficientValue);
+            td.innerHTML = Normalizer.prototype.writeToRatio(simplexTable.goalFunction.equation.variables[currentElement.numberBasis - 1].coeficientValue);
             tr.appendChild(td);
         }
 
@@ -292,12 +286,13 @@ DOMGenerator.prototype.doSimplexTable = function (simplexTable, isFirst) {
     iterator = 0;
     while (iterator++ < simplexTable.marks.length) {
         td = document.createElement('td');
-        td.innerHTML = this.getRatio(simplexTable.marks[iterator - 1].value);
+
+        td.innerHTML = Normalizer.prototype.writeToRatio(simplexTable.marks[iterator - 1].value);
         tr.appendChild(td);
     }
 
     td = document.createElement('td');
-    td.innerHTML = this.getRatio(simplexTable.goalFunctionValue);
+    td.innerHTML = Normalizer.prototype.writeToRatio(simplexTable.goalFunctionValue);
     tr.appendChild(td);
 
     table.appendChild(tr);
@@ -312,7 +307,8 @@ DOMGenerator.prototype.doSimplexTable = function (simplexTable, isFirst) {
         iterator = 0;
         while (iterator++ < simplexTable.marks.length) {
             td = document.createElement('td');
-            td.innerHTML = simplexTable.goalFunction.equation.variables[iterator - 1].coeficientValue;
+
+            td.innerHTML = Normalizer.prototype.writeToRatio(simplexTable.goalFunction.equation.variables[iterator - 1].coeficientValue);
             tr.appendChild(td);
         }
 
@@ -342,14 +338,14 @@ DOMGenerator.prototype.doCoordsAndFuncValue = function (simplexTable, index) {
             continue;
         }
 
-        coordArr.push(this.getRatio(currentElement.freeMember));
+        coordArr.push(Normalizer.prototype.writeToRatio(currentElement.freeMember));
     }
 
     coordVal += coordArr.join('; ') + ")";
     coord.innerHTML = coordVal;
 
     funcVal = document.createElement('span');
-    funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + this.getRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
+    funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + Normalizer.prototype.writeToRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
 
     block.appendChild(coord);
     block.appendChild(funcVal);

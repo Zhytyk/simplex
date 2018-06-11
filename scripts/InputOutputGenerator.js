@@ -1,12 +1,18 @@
-function InputOutputGenerator(domGenerator) {
+function InputOutputGenerator(domGenerator, normalizer) {
     this.domGenerator = domGenerator;
+    this.normalizer = new Normalizer(this);
     this.input = {};
 }
 
 InputOutputGenerator.prototype.generateInput = function () {
     this.generateInputGoalFunction();
     this.generateInputRestrictions();
+    this.normalize();
     this.resolveBasis();
+};
+
+InputOutputGenerator.prototype.normalize = function () {
+    this.normalizer.normalize();
 };
 
 InputOutputGenerator.prototype.generateInputGoalFunction = function () {
@@ -23,7 +29,7 @@ InputOutputGenerator.prototype.generateInputGoalFunction = function () {
 };
 
 InputOutputGenerator.prototype.generateInputRestrictions = function () {
-    var restrictions = [], restriction, currentInput, currentInputInner,
+    var restrictions = [], varRestrictions = [], restriction, currentInput, currentInputInner,
         iterator, innerIterator, currentVariable;
 
     for (iterator = 0; currentInput = this.domGenerator.restrictionInputs[iterator++];) {
@@ -37,11 +43,20 @@ InputOutputGenerator.prototype.generateInputRestrictions = function () {
         }
 
         restriction.freeMember = restriction.variables.pop().value;
+        restriction.token = this.domGenerator.restrictionInputTokens[iterator - 1].value;
 
         restrictions.push(restriction);
     }
 
+    for (iterator = 0; currentInput = this.domGenerator.varRestrictionInputTokens[iterator++];) {
+        restriction = {};
+
+        restriction.token = currentInput.value;
+        varRestrictions.push(restriction);
+    }
+
     this.input.restrictions = restrictions;
+    this.input.varRestriction = varRestrictions;
 };
 
 InputOutputGenerator.prototype.resolveBasis = function () {
