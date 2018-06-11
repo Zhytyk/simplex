@@ -345,6 +345,7 @@ DOMGenerator.prototype.doCoordsAndFuncValue = function (simplexTable, index) {
     coord.innerHTML = coordVal;
 
     funcVal = document.createElement('span');
+    debugger;
     funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + Normalizer.prototype.writeToRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
 
     block.appendChild(coord);

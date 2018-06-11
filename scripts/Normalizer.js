@@ -8,7 +8,7 @@ Normalizer.prototype.normalize = function() {
     this.resolveMinusFreeMembers();
     this.resolveLessEqualToken();
     this.resolveCase();
-    debugger;
+    this.resolveVars();
 };
 
 Normalizer.prototype.resolveMinusFreeMembers = function() {
@@ -21,6 +21,12 @@ Normalizer.prototype.resolveMinusFreeMembers = function() {
                     currentEl.variables[currentVar].value =
                         -currentEl.variables[currentVar].value;
                 }
+            }
+
+            if (currentEl.token === "less") {
+                currentEl.token = "more";
+            } else if (currentEl.token === "more") {
+                currentEl.token = "less";
             }
 
             currentEl.freeMember = -currentEl.freeMember;
@@ -225,6 +231,29 @@ Normalizer.prototype.resolveMoreEqualAndEqualToken = function() {
     this.resolveEqualToken();
 };
 
+Normalizer.prototype.resolveVars = function() {
+    var iterator, innerIterator, currentEl, currentElInn, tmpVal, tmpValM;
+
+    for (iterator = 0; currentEl = this.inputOutputGenerator.input.varRestriction[iterator++];) {
+        if (currentEl.token !== 'all') {
+            continue;
+        }
+
+        for (innerIterator = 0; currentElInn = this.inputOutputGenerator.input.restrictions[innerIterator++];) {
+            tmpVal = Object.assign({}, currentElInn.variables[iterator - 1]);
+            tmpValM = Object.assign({}, currentElInn.variables[iterator - 1]);
+            tmpValM.value = -tmpValM.value;
+
+            currentElInn.variables.splice(iterator - 1, 1, tmpVal, tmpValM);
+        }
+
+        tmpVal = this.inputOutputGenerator.input.goalFunction.variables[iterator - 1];
+        tmpValM = -tmpVal;
+
+        this.inputOutputGenerator.input.goalFunction.variables.splice(iterator - 1, 1, tmpVal, tmpValM);
+    }
+};
+
 Normalizer.prototype.hasBasis = function(currentElParam, currentIterator) {
     var currentEl, currentElInn, iterator, innerIterator;
 
@@ -250,30 +279,29 @@ Normalizer.prototype.hasBasis = function(currentElParam, currentIterator) {
 };
 
 Normalizer.prototype.writeToRatio = function (value) {
-    var mainVal, tmpVal;
+    var roundVal, coef, module, result;
 
     if (Math.abs(value) > (this.MAX_VAL / 100)) {
-        mainVal = Math.floor(value * 1000) / 1000;
-        value = (mainVal * 1.0 / this.MAX_VAL);
+        roundVal = Math.round(value / 1000) * 1000;
 
-        tmpVal = mainVal % this.MAX_VAL;
-        if (tmpVal > 0) {
-            tmpVal = '+' + this.getRatio(tmpVal);
-        } else if (tmpVal !== 0) {
-            tmpVal = this.getRatio(value);
+        coef = (value * 1.0 / this.MAX_VAL);
+        module = value - roundVal;
+
+        if (module >= 0) {
+            module = '+' + this.getRatio(module);
+        } else {
+            module = this.getRatio(module);
         }
 
-        value = this.getRatio(value) + 'M';
-
-        if (tmpVal !== 0) {
-            value += tmpVal;
+        result = this.getRatio(coef) + 'M';
+        if (module !== 0) {
+            result += module;
         }
-
     } else {
-        value = this.getRatio(value);
+        result = this.getRatio(value);
     }
 
-    return value;
+    return result;
 };
 
 Normalizer.prototype.getRatio = function getRatio(value) {

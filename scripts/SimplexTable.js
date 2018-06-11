@@ -31,11 +31,10 @@ SimplexTable.prototype.evaluateMinRelation = function () {
 
     j = 0;
     minRelationVal = Number.MAX_SAFE_INTEGER;
-
     while (currentEquation = this.restrictedEquations[j++]) {
         relationVal = currentEquation.freeMember / currentEquation.variables[this.maxMark.number - 1].coeficientValue;
 
-        if (relationVal > 0 && relationVal < minRelationVal) {
+        if (relationVal >= 0 && relationVal < minRelationVal) {
             minRelation = currentEquation;
             minRelationVal = relationVal;
         }
@@ -78,6 +77,24 @@ SimplexTable.prototype.evaluateBasis = function () {
 };
 
 SimplexTable.prototype.isEnd = function () {
+    var currentMark, currentEquation, j = 0, i;
+
+    while (currentMark = this.marks[j++]) {
+        if (currentMark.value > 0) {
+
+            i = 0;
+            while (currentEquation = this.restrictedEquations[i++]) {
+                if (currentEquation.variables[currentMark.number - 1].coeficientValue >= 0) {
+                    break;
+                }
+
+                if (!this.restrictedEquations[i]) {
+                    return true;
+                }
+            }
+        }
+    }
+
     return this.maxMark.value < 0 || !this.minRelation;
 };
 
