@@ -46,10 +46,15 @@ Normalizer.prototype.resolveLessEqualToken = function() {
     }
 };
 
-Normalizer.prototype.pushBasisVariable = function(currentEl, defaultVal, goalVarValue) {
+Normalizer.prototype.pushBasisVariable = function(currentEl, defaultVal, goalVarValue, isManual) {
     var variable, currentElInn, innerIterator;
 
     variable = { value : defaultVal || 1 };
+    variable.addition = true;
+    if (isManual) {
+        variable.manual = true;
+    }
+
     currentEl.variables.push(variable);
     currentEl.used = true;
 
@@ -106,7 +111,7 @@ Normalizer.prototype.resolveEqualToken = function () {
             continue;
         }
 
-        this.pushBasisVariable(currentEl, null, this.MAX_VAL);
+        this.pushBasisVariable(currentEl, null, this.MAX_VAL, true);
         currentEl.used = true;
     }
 };
@@ -149,7 +154,7 @@ Normalizer.prototype.resolveMoreEqualToken = function() {
         }
     }
 
-    this.pushBasisVariable(maxEl, 1, this.MAX_VAL);
+    this.pushBasisVariable(maxEl, 1, this.MAX_VAL, true);
 };
 
 Normalizer.prototype.resolveMoreEqualAndEqualToken = function() {
@@ -287,7 +292,7 @@ Normalizer.prototype.writeToRatio = function (value) {
         coef = (value * 1.0 / this.MAX_VAL);
         module = value - roundVal;
 
-        if (module >= 0) {
+        if (module > 0) {
             module = '+' + this.getRatio(module);
         } else {
             module = this.getRatio(module);

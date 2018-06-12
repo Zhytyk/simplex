@@ -136,6 +136,7 @@ Main.prototype.run = function () {
 Main.prototype.generateConfiguration = function () {
     this.domGenerator = new DOMGenerator(new Configuration());
     this.inputOutputGenerator = new InputOutputGenerator(this.domGenerator);
+    this.domGenerator.setInputOutputGenerator(this.inputOutputGenerator);
 
     this.domGenerator.doInputBlock(this.inputOutputGenerator.generateInput.bind(this.inputOutputGenerator), this.run.bind(this));
 };

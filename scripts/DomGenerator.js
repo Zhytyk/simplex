@@ -9,6 +9,10 @@ function DOMGenerator(configuration) {
     this.appDiv = document.getElementById(APP_ID);
 }
 
+DOMGenerator.prototype.setInputOutputGenerator = function(generator) {
+    this.inputOutputGenerator = generator;
+};
+
 DOMGenerator.prototype.doInputBlock = function (generateInput, run) {
     var inputBlock, goalFunctionLabel, goalFunctionBlock, restrictionsBlock, btn;
     inputBlock = document.createElement('div');
@@ -345,7 +349,120 @@ DOMGenerator.prototype.doCoordsAndFuncValue = function (simplexTable, index) {
     coord.innerHTML = coordVal;
 
     funcVal = document.createElement('span');
-    debugger;
+    funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + Normalizer.prototype.writeToRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
+
+    block.appendChild(coord);
+    block.appendChild(funcVal);
+    this.appDiv.appendChild(block);
+};
+
+DOMGenerator.prototype.doCoordsAndFuncValueAddition = function (simplexTable, index) {
+    var block, coord, coordVal, coordArr = [], funcVal, currentElement, iterator,
+        foundVarAllRestr = [], currentVarAllRestr, additionVars = [], manualVars, nonZeroManualVars;
+
+    this.varRestrictionInputTokens.forEach(function(e, i) {
+        if (e.value !== 'all') {
+            return;
+        }
+
+        foundVarAllRestr.push({
+            value: e,
+            index: i
+        });
+    });
+
+    this.inputOutputGenerator.input.restrictions[0].variables.forEach(function(e, i) {
+        if (e.addition) {
+            additionVars.push({
+                value: e,
+                index: i
+            });
+        }
+    });
+
+    manualVars = additionVars.filter(function(e) {
+       return e.value.manual;
+    });
+
+    if (!additionVars) {
+        return;
+    }
+
+    if (manualVars) {
+        nonZeroManualVars = simplexTable.restrictedEquations.find(function (e) {
+           return manualVars.some(function(e1) {
+               return e1.index === (e.numberBasis - 1) && e.freeMember !== 0;
+           });
+        });
+
+        if (nonZeroManualVars) {
+            block = document.createElement('div');
+            block.setAttribute('class', 'margin red-answer');
+            block.innerHTML = "МПР вихідної задачі порожнє.";
+            this.appDiv.appendChild(block);
+            return;
+        }
+    }
+
+    if (!foundVarAllRestr) {
+        return;
+    }
+
+
+    block = document.createElement('div');
+    block.setAttribute('class', 'margin');
+
+    coord = document.createElement('span');
+    coordVal = "x<sup>" + index + "</sup>(";
+
+    for (iterator = 1; iterator <= simplexTable.marks.length - additionVars.length; iterator++) {
+        currentElement = simplexTable.restrictedEquations.find(function (e) {
+            return e.numberBasis === iterator;
+        });
+
+        currentVarAllRestr = foundVarAllRestr.find(function(e) {
+           return (2 * e.index) === iterator - 1;
+        });
+
+        if (currentVarAllRestr) {
+            (function() {
+               var nextElement, currElemVal, nextElemVal;
+
+               iterator++;
+
+               nextElement = simplexTable.restrictedEquations.find(function (e) {
+                   return e.numberBasis === iterator;
+               });
+
+               if (!currentElement) {
+                   currElemVal = 0;
+               } else {
+                   currElemVal = currentElement.freeMember
+               }
+
+               if (!nextElement) {
+                   nextElemVal = 0;
+               } else {
+                   nextElemVal = nextElement.freeMember;
+               }
+
+               coordArr.push(Normalizer.prototype.writeToRatio(currElemVal - nextElemVal));
+            })();
+            continue;
+        }
+
+        if (!currentElement) {
+            coordArr.push(0);
+            continue;
+        }
+
+        coordArr.push(Normalizer.prototype.writeToRatio(currentElement.freeMember));
+    }
+
+    coordVal += coordArr.join('; ') + ")";
+    coord.innerHTML = "Відповідь вихідної задачі: " + coordVal;
+
+    funcVal = document.createElement('span');
     funcVal.innerHTML = " F(x<sup>" + index + "</sup>) = " + Normalizer.prototype.writeToRatio(this.configuration.isMin ? simplexTable.goalFunctionValue : -simplexTable.goalFunctionValue);
 
     block.appendChild(coord);
@@ -375,5 +492,6 @@ DOMGenerator.prototype.doResultAnswer = function (simplexTables) {
 
     if (!lastTable.maxMark.number) {
         this.doCoordsAndFuncValue(lastTable, '*');
+        this.doCoordsAndFuncValueAddition(lastTable, '*');
     }
 };
