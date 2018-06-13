@@ -40,7 +40,6 @@ Main.prototype.constructFirstSimplexTable = function (goalFunction) {
 
     for (j = 0; currentElement = restrictions[j++];) {
         variables = [];
-
         for (k = 0; currentVariable = currentElement.variables[k++];) {
             variables.push(
                 new RestritedVariable(k, currentVariable.value, currentVariable.isBasis)
@@ -103,7 +102,7 @@ Main.prototype.constructSimplexTable = function (previousSimplexTable) {
 };
 
 Main.prototype.run = function () {
-    var goalFunction, currentSimplexTable, first = true, iterator = 0;
+    var goalFunction, currentSimplexTable, first = true, iterator = 0 , ii = 0;
 
     goalFunction = this.constructGoalFunction();
 
@@ -115,6 +114,7 @@ Main.prototype.run = function () {
 
         currentSimplexTable.evaluate();
         this.simplexTables.push(currentSimplexTable);
+        ii++
 
     } while (!currentSimplexTable.isEnd());
 

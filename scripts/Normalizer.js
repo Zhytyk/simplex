@@ -60,7 +60,6 @@ Normalizer.prototype.pushBasisVariable = function(currentEl, defaultVal, goalVar
 
     variable = Object.assign({}, variable);
     variable.value = 0;
-
     for (innerIterator = 0; currentElInn =
         this.inputOutputGenerator.input.restrictions[innerIterator++];) {
         if (currentElInn.variables.length < currentEl.variables.length) {
@@ -190,10 +189,10 @@ Normalizer.prototype.resolveMoreEqualAndEqualToken = function() {
 
         if (currentEl.freeMember > maxEl.freeMember) {
             while (true) {
-                currentEl.freeMember /= 2;
+                currentEl.freeMember /= currentEl.freeMember;
 
                 for (innerIt = 0; currentElemInner = currentEl.variables[innerIt++];) {
-                    currentElemInner.value /= 2
+                    currentElemInner.value /= currentEl.freeMember
                 }
 
                 if (currentEl.freeMember <= maxEl.freeMember) {
